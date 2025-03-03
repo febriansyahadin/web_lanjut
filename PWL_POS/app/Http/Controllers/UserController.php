@@ -17,10 +17,17 @@ class UserController extends Controller
            // 'level_id' => 4
       //  ];
 
-      $data = [
-        'nama' => 'Pelanggan Pertama'
-      ];
-      UserModel::where('username', 'customer-1')->update($data);
+     // $data = [
+       // 'nama' => 'Pelanggan Pertama'
+      //];
+        $data = [
+           'level_id' => 2,
+           'username' => 'manager_tiga',
+          'nama' => 'Manager 3',
+           'password' => Hash::make('12345')
+     ];
+       UserModel::create($data);
+     // UserModel::where('username', 'customer-1')->update($data);
 
         $users = UserModel::all();
         return view('user', ['data' => $users]);
