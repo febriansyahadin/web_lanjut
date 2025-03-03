@@ -29,7 +29,7 @@ class UserController extends Controller
         UserModel::create($data);
         UserModel::where('username', 'customer-1')->update($data);*/
 
-        $users = UserModel::findOr(20, ['username', 'nama'], function (){abort(404);});
+        $users = UserModel::where('username', 'manager9')->firstOrFail();
         return view('user', ['data' => $users]);
     }
 }
