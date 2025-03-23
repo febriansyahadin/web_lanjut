@@ -24,6 +24,7 @@
                 </tr> 
                 <tr> 
                     <th>Username</th> 
+                    
                     <td>{{ $user->username }}</td> 
                 </tr> 
                 <tr> 
