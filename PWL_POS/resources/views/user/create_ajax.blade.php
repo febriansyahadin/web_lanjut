@@ -29,12 +29,12 @@
                     <input type="text" name="nama" id="nama" class="form-control" required>
                     <small id="error-nama" class="error-text text-danger"></small>
                 </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" name="password" id="password" class="form-control" required>
-                    <small id="error-password" class="error-text text-danger"></small>
-                </div>
-            </div>
+                <div class="form-group"> 
+                    <label>Password</label> 
+                    <input value="" type="password" name="password" id="password" class="form-control" required> 
+                    <small id="error-password" class="error-text form-text text-danger"></small> 
+                </div> 
+            </div> 
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-warning">Batal</button>
                 <button type="submit" class="btn btn-primary">Simpan</button>

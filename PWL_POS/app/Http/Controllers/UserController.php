@@ -291,4 +291,5 @@ public function delete_ajax(Request $request, string $id)
     }
     return redirect('/');
 }
+
 }
