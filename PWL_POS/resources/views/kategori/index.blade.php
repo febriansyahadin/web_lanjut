@@ -5,8 +5,12 @@
         <div class="card-header">
             <h3 class="card-title">{{ $page->title }}</h3>
             <div class="card-tools">
-                <a href="{{ url('kategori/create') }}" class="btn btn-sm btn-primary mt-1">Tambah</a>
-                <button onclick="modalAction('{{ url('/kategori/create_ajax') }}')" class="btn btn-sm btn-success mt-1">Tambah Ajax</button> 
+                <button onclick="modalAction('{{ url('/kategori/import') }}')" class="btn btn-info">Import Kategori</button>
+                <a href="{{ url('/kategori/export_excel') }}" class="btn btn-primary">
+                    <i class="fa fa-file-excel"></i> Export Kategori Excel </a>  
+                <a href="{{ url('/kategori/export_pdf') }}" class="btn btn-warning">
+                    <i class="fa fa-file-pdf"></i> Export Kategori PDF </a>      
+                <button onclick="modalAction('{{ url('/kategori/create_ajax') }}')" class="btn btn-success">Tambah Data (Ajax)</button>
             </div>
         </div>
         <div class="card-body">
@@ -51,40 +55,44 @@
 @endpush
 
 @push('js')
-    <script>
-        function modalAction(url = ''){ 
-    $('#myModal').load(url,function(){ 
-        $('#myModal').modal('show'); 
-    }); 
-}
+<script>
+    function modalAction(url = ''){ 
+        $('#myModal').load(url,function(){ 
+            $('#myModal').modal('show'); 
+        }); 
+    }
 
-       $(document).ready(function() {
-    var table = $('#table_kategori').DataTable({
-        serverSide: true,
-        processing: true,
-        ajax: {
-            url: "{{ url('kategori/list') }}",
-            type: "POST",
-            dataType: "json",
-            data: function(d) {
-                d.kategori_id = $('#kategori_id').val(); // Kirim kategori_id ke server
-                d._token = "{{ csrf_token() }}"; // Laravel membutuhkan CSRF token
+    $(document).ready(function() {
+        // Tambahkan CSRF header global
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
-        },
-        columns: [
-            { data: "DT_RowIndex", className: "text-center", orderable: false, searchable: false },
-            { data: "kategori_kode", orderable: true, searchable: true },
-            { data: "kategori_nama", orderable: true, searchable: true },
-            { data: "aksi", orderable: false, searchable: false }
-        ]
+        });
+
+        var table = $('#table_kategori').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: "{{ url('kategori/list') }}",
+                type: "POST",
+                dataType: "json",
+                data: function(d) {
+                    d.kategori_id = $('#kategori_id').val(); 
+                    // CSRF sudah otomatis dari ajaxSetup
+                }
+            },
+            columns: [
+                { data: "DT_RowIndex", className: "text-center", orderable: false, searchable: false },
+                { data: "kategori_kode", orderable: true, searchable: true },
+                { data: "kategori_nama", orderable: true, searchable: true },
+                { data: "aksi", orderable: false, searchable: false }
+            ]
+        });
+
+        $('#kategori_id').change(function() {
+            table.ajax.reload(); 
+        });
     });
-
-    // Event listener untuk filter berdasarkan kategori_id
-    $('#kategori_id').change(function() {
-        table.ajax.reload(); // Reload DataTables saat filter berubah
-    });
-});
-
-
-    </script>
+</script>
 @endpush

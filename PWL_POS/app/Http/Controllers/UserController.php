@@ -7,6 +7,8 @@ use App\Models\UserModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserController extends Controller
 {
@@ -291,5 +293,139 @@ public function delete_ajax(Request $request, string $id)
     }
     return redirect('/');
 }
+public function import()
+{
+    return view('user.import');
+}
+
+public function import_ajax(Request $request)
+{
+    if ($request->ajax() || $request->wantsJson()) {
+        $rules = [
+            // validasi file harus xls atau xlsx, max 1MB 
+            'file_user' => ['required', 'mimes:xlsx', 'max:1024']
+        ];
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi Gagal',
+                'msgField' => $validator->errors()
+            ]);
+        }
+        $file = $request->file('file_user');  // ambil file dari request 
+
+        $reader = IOFactory::createReader('Xlsx');  // load reader file excel 
+        $reader->setReadDataOnly(true);             // hanya membaca data 
+        $spreadsheet = $reader->load($file->getRealPath()); // load file excel 
+        $sheet = $spreadsheet->getActiveSheet();    // ambil sheet yang aktif 
+
+        $data = $sheet->toArray(null, false, true, true);   // ambil data excel 
+
+        $insert = [];
+        if (count($data) > 1) { // jika data lebih dari 1 baris 
+            foreach ($data as $baris => $value) {
+                if ($baris > 1) { // baris ke 1 adalah header, maka lewati 
+                    $insert[] = [
+                        'level_id' => $value['A'],
+                        'username' => $value['B'],
+                        'nama' => $value['C'],
+                        'password' => bcrypt('password123'), // Password default
+                        'created_at' => now(),
+                    ];
+                }
+            }
+            if (count($insert) > 0) {
+                // insert data ke database, jika data sudah ada, maka diabaikan 
+                UserModel::insertOrIgnore($insert);
+            }
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil diimport'
+            ]);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tidak ada data yang diimport'
+            ]);
+        }
+    }
+    return redirect('/');
+}
+
+public function export_excel()
+{
+    // Ambil data user beserta level-nya (with sebelum get)
+    $users = UserModel::with('level')
+        ->select('level_id', 'username', 'nama')
+        ->orderBy('level_id')
+        ->get();
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // Header kolom
+    $sheet->setCellValue('A1', 'No');
+    $sheet->setCellValue('B1', 'Username');
+    $sheet->setCellValue('C1', 'Nama User');
+    $sheet->setCellValue('D1', 'Level Pengguna');
+
+    // Bold header
+    $sheet->getStyle('A1:D1')->getFont()->setBold(true);
+
+    $no = 1;
+    $baris = 2;
+    foreach ($users as $value) {
+        $sheet->setCellValue('A' . $baris, $no);
+        $sheet->setCellValue('B' . $baris, $value->username);
+        $sheet->setCellValue('C' . $baris, $value->nama);
+        $sheet->setCellValue('D' . $baris, $value->level->level_nama ?? '-');
+
+        $baris++;
+        $no++;
+    }
+
+    // Auto size untuk semua kolom
+    foreach (range('A', 'D') as $kolom) {
+        $sheet->getColumnDimension($kolom)->setAutoSize(true);
+    }
+
+    $sheet->setTitle('Data User');
+
+    $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+    $filename = 'Data User - ' . date('Y-m-d H-i-s') . '.xlsx';
+
+    // Header file untuk download
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+    header('Cache-Control: cache, must-revalidate');
+    header('Pragma: public');
+
+    $writer->save('php://output');
+    exit;
+}
+
+public function export_pdf()
+{
+    ini_set('max_execution_time', 300);
+    set_time_limit(300);
+
+    $user = UserModel::select('level_id', 'username', 'nama')
+        ->orderBy('level_id')
+        ->orderBy('username')
+        ->with('level')
+        ->get();
+
+    // use Barryvdh\DomPDF\Facade\Pdf;
+    $pdf = Pdf::loadView('user.export_pdf', ['user' => $user]);
+    $pdf->setPaper('a4', 'portrait'); // set ukuran kertas dan orientasi
+    $pdf->setOption(['isRemoteEnabled' => true]); // set true jika ada gambar dari url
+    $pdf->render();
+    return $pdf->stream('Laporan Data User - ' . date('Y-m-d H:i:s') . '.pdf');
+}
+
 
 }

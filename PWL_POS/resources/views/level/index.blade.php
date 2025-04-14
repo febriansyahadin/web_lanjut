@@ -5,10 +5,17 @@
         <div class="card-header">
             <h3 class="card-title">{{ $page->title }}</h3>
             <div class="card-tools">
-                <a class="btn btn-sm btn-primary mt-1" href="{{ url('level/create') }}">Tambah</a>
-                <button onclick="modalAction('{{ url('/level/create_ajax') }}')" class="btn btn-sm btn-success mt-1">Tambah Ajax</button>
+                <button onclick="modalAction('{{ url('/level/import') }}')" class="btn btn-info btn-sm mt-1">Import Level</button>
+                <a href="{{ url('/level/export_excel') }}" class="btn btn-primary btn-sm mt-1">
+                    <i class="fa fa-file-excel"></i> Export Excel
+                </a>
+                <a href="{{ url('/level/export_pdf') }}" class="btn btn-warning btn-sm mt-1">
+                    <i class="fa fa-file-pdf"></i> Export PDF
+                </a>
+                <button onclick="modalAction('{{ url('/level/create_ajax') }}')" class="btn btn-sm btn-success mt-1">Tambah Data (Ajax)</button>
             </div>
         </div>
+
         <div class="card-body">
             @if (session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
@@ -16,22 +23,24 @@
             @if (session('error'))
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
+
             <div class="row">
                 <div class="col-md-12">
-                  <div class="form-group row">
-                    <label for="level_id" class="col-1 control-label col-form-label">Filter:</label>
-                    <div class="col-3">
-                      <select class="form-control" id="level_id" name="level_id" required>
-                        <option value="">- Semua -</option>
-                        @foreach ($level as $item)
-                            <option value="{{ $item->level_nama }}">{{ $item->level_nama }}</option>
-                        @endforeach
-                      </select>
-                      <small class="form-text text-muted">Level Pengguna</small>
+                    <div class="form-group row">
+                        <label for="level_id" class="col-1 control-label col-form-label">Filter:</label>
+                        <div class="col-3">
+                            <select class="form-control" id="level_id" name="level_id">
+                                <option value="">- Semua -</option>
+                                @foreach ($level as $item)
+                                    <option value="{{ $item->level_nama }}">{{ $item->level_nama }}</option>
+                                @endforeach
+                            </select>
+                            <small class="form-text text-muted">Level Pengguna</small>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              </div>
+            </div>
+
             <table class="table table-bordered table-striped table-hover table-sm" id="table_level">
                 <thead>
                     <tr>
@@ -44,46 +53,51 @@
             </table>
         </div>
     </div>
-    <div id="myModal" class="modal fade animate shake" tabindex="-1" role="dialog" data-backdrop ="static" data-keyboard="false" data-width="75%" aria-hidden="true"></div> 
+
+    <div id="myModal" class="modal fade animate shake" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" data-width="75%" aria-hidden="true"></div>
 @endsection
 
 @push('css')
 @endpush
 
 @push('js')
-    <script>
-        function modalAction(url = '') {
-            $('#myModal').load(url,function(){
-                $('#myModal').modal('show');
-            });
-        }
-        
-       $(document).ready(function() {
-    let table = $('#table_level').DataTable({
-        serverSide: true,
-        processing: true,
-        ajax: {
-            url: "{{ url('level/list') }}",
-            type: "POST",
-            dataType: "json",
-            data: function(d) {
-                d.level_nama = $('#level_id').val(); // Kirim level_nama ke server
-                d._token = "{{ csrf_token() }}"; // Laravel membutuhkan CSRF token
+<script>
+    function modalAction(url = '') {
+        $('#myModal').load(url, function () {
+            $('#myModal').modal('show');
+        });
+    }
+
+    $(document).ready(function () {
+        // Setup CSRF token secara global untuk AJAX
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
-        },
-        columns: [
-            { data: "DT_RowIndex", className: "text-center", orderable: false, searchable: false },
-            { data: "level_kode", orderable: true, searchable: true },
-            { data: "level_nama", orderable: true, searchable: true },  
-            { data: "aksi", orderable: false, searchable: false }
-        ]
-    });
+        });
 
-    // Event listener untuk filter berdasarkan nama level
-    $('#level_id').change(function() {
-        table.ajax.reload(); // Reload DataTables saat filter berubah
-    });
-});
+        let table = $('#table_level').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: "{{ url('level/list') }}",
+                type: "POST",
+                dataType: "json",
+                data: function (d) {
+                    d.level_nama = $('#level_id').val();
+                }
+            },
+            columns: [
+                { data: "DT_RowIndex", className: "text-center", orderable: false, searchable: false },
+                { data: "level_kode", orderable: true, searchable: true },
+                { data: "level_nama", orderable: true, searchable: true },
+                { data: "aksi", orderable: false, searchable: false }
+            ]
+        });
 
-    </script>
+        $('#level_id').change(function () {
+            table.ajax.reload();
+        });
+    });
+</script>
 @endpush
